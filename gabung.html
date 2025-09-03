@@ -3,25 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Validasi Angka</title>
+  <title>Validasi Angka — FIXED</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-6 font-sans">
   <div class="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-6 space-y-4">
-    <h1 class="text-2xl font-bold text-center mb-4">Validasi Angka</h1>
+    <h1 class="text-2xl font-bold text-center mb-4">Validasi Angka (perbaikan)</h1>
 
     <!-- Input Areas -->
     <div>
       <label class="block font-medium mb-1">Input Area 1</label>
-      <textarea id="inputArea1" rows="4" class="border p-2 w-full rounded bg-gray-50" placeholder="Masukkan angka dipisahkan spasi/baris"></textarea>
+      <textarea id="inputArea1" rows="4" class="border p-2 w-full rounded bg-gray-50"
+        placeholder="Masukkan angka. Boleh dipisah spasi, baris baru, koma, atau tanda * — mis. 01 02,03*4"></textarea>
     </div>
     <div>
       <label class="block font-medium mb-1">Input Area 2</label>
-      <textarea id="inputArea2" rows="4" class="border p-2 w-full rounded bg-gray-50" placeholder="Masukkan angka dipisahkan spasi/baris"></textarea>
+      <textarea id="inputArea2" rows="4" class="border p-2 w-full rounded bg-gray-50"
+        placeholder="Area 2 (wajib)"></textarea>
     </div>
     <div>
       <label class="block font-medium mb-1">Input Area 3 (Opsional)</label>
-      <textarea id="inputArea3" rows="4" class="border p-2 w-full rounded bg-gray-50" placeholder="Masukkan angka dipisahkan spasi/baris"></textarea>
+      <textarea id="inputArea3" rows="4" class="border p-2 w-full rounded bg-gray-50"
+        placeholder="Area 3 (opsional)"></textarea>
     </div>
 
     <!-- Validasi -->
@@ -34,50 +37,68 @@
     <!-- Hasil -->
     <div>
       <label class="block font-medium mb-1">Hasil Validasi</label>
-      <textarea id="resultArea" rows="6" class="border p-2 w-full rounded bg-gray-50" placeholder="Hasil validasi akan muncul di sini"></textarea>
+      <textarea id="resultArea" rows="6" class="border p-2 w-full rounded bg-gray-50"
+        placeholder="Hasil validasi akan tampil di sini (satu per baris)"></textarea>
+    </div>
+
+    <div class="text-xs text-gray-500">
+      Tips: Input boleh berformat <code>01 02 03</code>, <code>1,2,3</code>, <code>1*2*3</code> atau campuran. Semua akan dinormalisasi jadi dua digit (mis. <code>1</code> → <code>01</code>).
     </div>
   </div>
 
   <script>
-    let sortAsc = true; // default urut naik
+    // Default sort ascending
+    let sortAsc = true;
 
-    function getSetFromArea(id) {
-      return new Set(
-        document.getElementById(id).value
-          .split(/\s+/)
-          .map(x => x.trim())
-          .filter(Boolean)
-      );
+    // Ambil semua token angka 1-2 digit dari teks, normalisasi jadi 2-digit (padStart)
+    function extractTokensFromText(text) {
+      if (!text) return [];
+      const matches = text.match(/\d{1,2}/g); // ambil grup digit 1-2 digit
+      if (!matches) return [];
+      // normalisasi ke 2-digit dan hapus yang bukan 00-99 (defensive)
+      return matches
+        .map(t => t.padStart(2, '0'))
+        .filter(t => /^\d{2}$/.test(t));
     }
 
-    function sortHasil(arr) {
-      return arr.sort((a, b) => sortAsc ? a.localeCompare(b) : b.localeCompare(a));
+    // Mengambil set unik dari textarea
+    function getSetFromArea(id) {
+      const tokens = extractTokensFromText(document.getElementById(id).value);
+      return new Set(tokens);
+    }
+
+    function numericSort(arr, asc = true) {
+      return arr.sort((a, b) => (asc ? (parseInt(a,10) - parseInt(b,10)) : (parseInt(b,10) - parseInt(a,10))));
     }
 
     document.getElementById("btnValidasi").addEventListener("click", () => {
-      const area1 = document.getElementById("inputArea1").value.trim();
-      const area2 = document.getElementById("inputArea2").value.trim();
-      const area3 = document.getElementById("inputArea3").value.trim();
+      const text1 = document.getElementById("inputArea1").value.trim();
+      const text2 = document.getElementById("inputArea2").value.trim();
+      const text3 = document.getElementById("inputArea3").value.trim();
 
-      if (!area1 || !area2) {
+      if (!text1 || !text2) {
         alert("Minimal isi Area 1 dan Area 2 dulu!");
         return;
       }
 
-      const set1 = getSetFromArea("inputArea1");
-      const set2 = getSetFromArea("inputArea2");
-      let hasil = [...set1].filter(x => set2.has(x));
+      // ekstrak token (array) supaya bisa menjaga urutan sementara; kemudian intersection
+      const arr1 = extractTokensFromText(text1);
+      const set2 = new Set(extractTokensFromText(text2));
+      let hasil = arr1.filter(x => set2.has(x));
 
-      if (area3) {
-        const set3 = getSetFromArea("inputArea3");
+      if (text3) {
+        const set3 = new Set(extractTokensFromText(text3));
         hasil = hasil.filter(x => set3.has(x));
       }
 
-      const unik = [...new Set(hasil)];
-      document.getElementById("resultArea").value =
-        sortHasil(unik).join("\n") || "Tidak ada angka yang cocok.";
+      // remove duplicates (jaga hanya satu setiap angka) kemudian sort numerik
+      const unik = Array.from(new Set(hasil));
+      const sorted = numericSort(unik, sortAsc);
+
+      document.getElementById("resultArea").value = (sorted.length ? sorted.join("\n") : "Tidak ada angka yang cocok.");
     });
 
+    // Reset semua textarea
     document.getElementById("btnReset").addEventListener("click", () => {
       document.getElementById("inputArea1").value = "";
       document.getElementById("inputArea2").value = "";
@@ -85,10 +106,18 @@
       document.getElementById("resultArea").value = "";
     });
 
+    // Toggle sort order dan refresh validasi jika ada hasil
     document.getElementById("btnSort").addEventListener("click", () => {
       sortAsc = !sortAsc;
       document.getElementById("btnSort").textContent = sortAsc ? "Urut: Naik" : "Urut: Turun";
-      document.getElementById("btnValidasi").click(); // refresh hasil
+      // jika ada hasil yang sudah tampil, urut ulang hasilnya tanpa butuh klik validasi
+      const curr = document.getElementById("resultArea").value.trim();
+      if (curr && curr !== "Tidak ada angka yang cocok.") {
+        // ubah hasil yang ada (satu per baris) menjadi array lalu resort
+        const arr = curr.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+        const sorted = numericSort(Array.from(new Set(arr)), sortAsc);
+        document.getElementById("resultArea").value = sorted.join("\n");
+      }
     });
   </script>
 </body>
