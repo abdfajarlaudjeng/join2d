@@ -15,17 +15,28 @@
   </nav>
 
   <!-- Input pencocokan -->
-  <div class="mb-4 flex items-center gap-2">
+  <div class="mb-4">
     <label class="font-bold">Masukkan angka 2D untuk cek: </label>
     <input id="inputCek" type="text" maxlength="2" class="border px-2 py-1 rounded w-20" placeholder="mis. 12">
-    <button id="btnSalin" class="px-3 py-1 bg-green-500 text-white rounded">Salin Cocok</button>
   </div>
 
-  <!-- Textarea hasil cocok -->
+  <!-- Tombol salin -->
   <div class="mb-4">
-    <label class="font-bold block mb-1">Hasil Cocok:</label>
-    <textarea id="hasilCocok" rows="4" class="w-full border rounded p-2 text-sm" placeholder="Angka cocok akan tampil di sini..."></textarea>
+    <button id="btnSalin" class="bg-green-500 text-white px-3 py-2 rounded">Salin Angka dari Tabel</button>
   </div>
+
+  <!-- Textarea input -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+    <textarea id="inputArea1" rows="6" class="border p-2 w-full rounded" placeholder="Input Area 1"></textarea>
+    <textarea id="inputArea2" rows="6" class="border p-2 w-full rounded" placeholder="Input Area 2"></textarea>
+    <textarea id="inputArea3" rows="6" class="border p-2 w-full rounded" placeholder="Input Area 3"></textarea>
+  </div>
+
+  <!-- Validasi -->
+  <div class="mb-4">
+    <button id="btnValidasi" class="bg-blue-600 text-white px-3 py-2 rounded">Validasi</button>
+  </div>
+  <textarea id="resultArea" rows="6" class="border p-2 w-full rounded bg-gray-50" placeholder="Hasil validasi akan muncul di sini"></textarea>
 
   <!-- Tabel-tabel -->
   <div id="tab-ke"></div>
@@ -69,7 +80,6 @@
       return table;
     }
 
-    // Load tiap tab
     async function loadTab(sheetName, containerId, columns) {
       const data = await fetchCsvAsArray(sheetName);
       const table = makeTable(data, columns.concat('Cocok?'));
@@ -94,30 +104,33 @@
     });
 
     // Pencocokan input
-    const inputCek = document.getElementById("inputCek");
-    const hasilCocok = document.getElementById("hasilCocok");
-
-    inputCek.addEventListener("input", e => {
+    document.getElementById("inputCek").addEventListener("input", e => {
       const val = e.target.value;
-      const cocokArr = [];
       document.querySelectorAll("tbody tr").forEach(tr => {
         const td2d = tr.children[2];
         const tdMatch = tr.querySelector(".match");
-        if (td2d && td2d.textContent === val) {
-          tdMatch.textContent = '✅';
-          cocokArr.push(td2d.textContent);
-        } else {
-          tdMatch.textContent = '';
-        }
+        tdMatch.textContent = (td2d && td2d.textContent === val) ? '✅' : '';
       });
-      hasilCocok.value = cocokArr.join('*');
     });
 
-    // Tombol salin
+    // Tombol salin data dari tabel
     document.getElementById("btnSalin").addEventListener("click", () => {
-      hasilCocok.select();
-      document.execCommand("copy");
-      alert("Hasil cocok disalin!");
+      const angka = [];
+      document.querySelectorAll("tbody tr").forEach(tr => {
+        const td2d = tr.children[2];
+        if (td2d) angka.push(td2d.textContent);
+      });
+      document.getElementById("inputArea1").value = angka.join("\n");
+    });
+
+    // Validasi dari 3 textarea
+    document.getElementById("btnValidasi").addEventListener("click", () => {
+      const set1 = new Set(document.getElementById("inputArea1").value.split(/\s+/).filter(Boolean));
+      const set2 = new Set(document.getElementById("inputArea2").value.split(/\s+/).filter(Boolean));
+      const set3 = new Set(document.getElementById("inputArea3").value.split(/\s+/).filter(Boolean));
+
+      const hasil = [...set1].filter(x => set2.has(x) && set3.has(x));
+      document.getElementById("resultArea").value = hasil.join("\n") || "Tidak ada angka yang cocok di ketiga area.";
     });
   </script>
 </body>
