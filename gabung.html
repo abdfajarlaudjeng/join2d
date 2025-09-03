@@ -1,136 +1,94 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tabel 2D Dinamis</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validasi Angka</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-4 font-sans">
-  <!-- Navbar -->
-  <nav class="flex gap-2 mb-4">
-    <button data-tab="ke" class="tab active px-3 py-2 bg-blue-500 text-white rounded">2D K-E</button>
-    <button data-tab="as" class="tab px-3 py-2 bg-gray-200 rounded">2D AS</button>
-    <button data-tab="askop" class="tab px-3 py-2 bg-gray-200 rounded">2D AS+KOP</button>
-  </nav>
+<body class="bg-gray-100 p-6 font-sans">
+  <div class="max-w-3xl mx-auto bg-white shadow-lg rounded-xl p-6 space-y-4">
+    <h1 class="text-2xl font-bold text-center mb-4">Validasi Angka</h1>
 
-  <!-- Input pencocokan -->
-  <div class="mb-4">
-    <label class="font-bold">Masukkan angka 2D untuk cek: </label>
-    <input id="inputCek" type="text" maxlength="2" class="border px-2 py-1 rounded w-20" placeholder="mis. 12">
+    <!-- Input Areas -->
+    <div>
+      <label class="block font-medium mb-1">Input Area 1</label>
+      <textarea id="inputArea1" rows="4" class="border p-2 w-full rounded bg-gray-50" placeholder="Masukkan angka dipisahkan spasi/baris"></textarea>
+    </div>
+    <div>
+      <label class="block font-medium mb-1">Input Area 2</label>
+      <textarea id="inputArea2" rows="4" class="border p-2 w-full rounded bg-gray-50" placeholder="Masukkan angka dipisahkan spasi/baris"></textarea>
+    </div>
+    <div>
+      <label class="block font-medium mb-1">Input Area 3 (Opsional)</label>
+      <textarea id="inputArea3" rows="4" class="border p-2 w-full rounded bg-gray-50" placeholder="Masukkan angka dipisahkan spasi/baris"></textarea>
+    </div>
+
+    <!-- Validasi -->
+    <div class="flex gap-2">
+      <button id="btnValidasi" class="bg-blue-600 text-white px-3 py-2 rounded">Validasi</button>
+      <button id="btnReset" class="bg-red-500 text-white px-3 py-2 rounded">Reset</button>
+      <button id="btnSort" class="bg-gray-500 text-white px-3 py-2 rounded">Urut: Naik</button>
+    </div>
+
+    <!-- Hasil -->
+    <div>
+      <label class="block font-medium mb-1">Hasil Validasi</label>
+      <textarea id="resultArea" rows="6" class="border p-2 w-full rounded bg-gray-50" placeholder="Hasil validasi akan muncul di sini"></textarea>
+    </div>
   </div>
-
-  <!-- Tombol salin -->
-  <div class="mb-4">
-    <button id="btnSalin" class="bg-green-500 text-white px-3 py-2 rounded">Salin Angka dari Tabel</button>
-  </div>
-
-  <!-- Textarea input -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-    <textarea id="inputArea1" rows="6" class="border p-2 w-full rounded" placeholder="Input Area 1"></textarea>
-    <textarea id="inputArea2" rows="6" class="border p-2 w-full rounded" placeholder="Input Area 2"></textarea>
-    <textarea id="inputArea3" rows="6" class="border p-2 w-full rounded" placeholder="Input Area 3"></textarea>
-  </div>
-
-  <!-- Validasi -->
-  <div class="mb-4">
-    <button id="btnValidasi" class="bg-blue-600 text-white px-3 py-2 rounded">Validasi</button>
-  </div>
-  <textarea id="resultArea" rows="6" class="border p-2 w-full rounded bg-gray-50" placeholder="Hasil validasi akan muncul di sini"></textarea>
-
-  <!-- Tabel-tabel -->
-  <div id="tab-ke"></div>
-  <div id="tab-as" class="hidden"></div>
-  <div id="tab-askop" class="hidden"></div>
 
   <script>
-    const sheetId = '1LBFj79uwQEB4uh8JT3_unOJxsYB3dgSzpslzPpgWiL8';
+    let sortAsc = true; // default urut naik
 
-    function csvUrl(sheetName) {
-      return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${sheetName}`;
+    function getSetFromArea(id) {
+      return new Set(
+        document.getElementById(id).value
+          .split(/\s+/)
+          .map(x => x.trim())
+          .filter(Boolean)
+      );
     }
 
-    async function fetchCsvAsArray(sheetName) {
-      const resp = await fetch(csvUrl(sheetName));
-      const text = await resp.text();
-      return text.trim().split('\n').map(r => r.split(','));
+    function sortHasil(arr) {
+      return arr.sort((a, b) => sortAsc ? a.localeCompare(b) : b.localeCompare(a));
     }
 
-    function makeTable(data, columns) {
-      const table = document.createElement('table');
-      table.className = "w-full border border-gray-300 bg-white text-sm";
-      table.innerHTML = `
-        <thead class="bg-gray-200"><tr>${columns.map(c => `<th class="border px-2 py-1">${c}</th>`).join('')}</tr></thead>
-        <tbody></tbody>
-      `;
-      const tbody = table.querySelector('tbody');
-      data.forEach(row => {
-        const tr = document.createElement('tr');
-        row.forEach(c => {
-          const td = document.createElement('td');
-          td.className = 'border px-2 py-1';
-          td.textContent = c;
-          tr.appendChild(td);
-        });
-        const tdMatch = document.createElement('td');
-        tdMatch.className = 'border px-2 py-1 match';
-        tr.appendChild(tdMatch);
-        tbody.appendChild(tr);
-      });
-      return table;
-    }
-
-    async function loadTab(sheetName, containerId, columns) {
-      const data = await fetchCsvAsArray(sheetName);
-      const table = makeTable(data, columns.concat('Cocok?'));
-      document.getElementById(containerId).innerHTML = '';
-      document.getElementById(containerId).appendChild(table);
-    }
-
-    loadTab('2D K-E', 'tab-ke', ['Kepala','Ekor','2D']);
-    loadTab('2D AS', 'tab-as', ['AS','BBFS','2D']);
-    loadTab('2D AS+KOP', 'tab-askop', ['AS','BBFS','2D']);
-
-    // Tab switching
-    document.querySelectorAll(".tab").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach(b => b.classList.remove("bg-blue-500","text-white"));
-        btn.classList.add("bg-blue-500","text-white");
-        ['ke','as','askop'].forEach(id => {
-          document.getElementById("tab-"+id).classList.add("hidden");
-        });
-        document.getElementById("tab-"+btn.dataset.tab).classList.remove("hidden");
-      });
-    });
-
-    // Pencocokan input
-    document.getElementById("inputCek").addEventListener("input", e => {
-      const val = e.target.value;
-      document.querySelectorAll("tbody tr").forEach(tr => {
-        const td2d = tr.children[2];
-        const tdMatch = tr.querySelector(".match");
-        tdMatch.textContent = (td2d && td2d.textContent === val) ? '✅' : '';
-      });
-    });
-
-    // Tombol salin data dari tabel
-    document.getElementById("btnSalin").addEventListener("click", () => {
-      const angka = [];
-      document.querySelectorAll("tbody tr").forEach(tr => {
-        const td2d = tr.children[2];
-        if (td2d) angka.push(td2d.textContent);
-      });
-      document.getElementById("inputArea1").value = angka.join("\n");
-    });
-
-    // Validasi dari 3 textarea
     document.getElementById("btnValidasi").addEventListener("click", () => {
-      const set1 = new Set(document.getElementById("inputArea1").value.split(/\s+/).filter(Boolean));
-      const set2 = new Set(document.getElementById("inputArea2").value.split(/\s+/).filter(Boolean));
-      const set3 = new Set(document.getElementById("inputArea3").value.split(/\s+/).filter(Boolean));
+      const area1 = document.getElementById("inputArea1").value.trim();
+      const area2 = document.getElementById("inputArea2").value.trim();
+      const area3 = document.getElementById("inputArea3").value.trim();
 
-      const hasil = [...set1].filter(x => set2.has(x) && set3.has(x));
-      document.getElementById("resultArea").value = hasil.join("\n") || "Tidak ada angka yang cocok di ketiga area.";
+      if (!area1 || !area2) {
+        alert("Minimal isi Area 1 dan Area 2 dulu!");
+        return;
+      }
+
+      const set1 = getSetFromArea("inputArea1");
+      const set2 = getSetFromArea("inputArea2");
+      let hasil = [...set1].filter(x => set2.has(x));
+
+      if (area3) {
+        const set3 = getSetFromArea("inputArea3");
+        hasil = hasil.filter(x => set3.has(x));
+      }
+
+      const unik = [...new Set(hasil)];
+      document.getElementById("resultArea").value =
+        sortHasil(unik).join("\n") || "Tidak ada angka yang cocok.";
+    });
+
+    document.getElementById("btnReset").addEventListener("click", () => {
+      document.getElementById("inputArea1").value = "";
+      document.getElementById("inputArea2").value = "";
+      document.getElementById("inputArea3").value = "";
+      document.getElementById("resultArea").value = "";
+    });
+
+    document.getElementById("btnSort").addEventListener("click", () => {
+      sortAsc = !sortAsc;
+      document.getElementById("btnSort").textContent = sortAsc ? "Urut: Naik" : "Urut: Turun";
+      document.getElementById("btnValidasi").click(); // refresh hasil
     });
   </script>
 </body>
