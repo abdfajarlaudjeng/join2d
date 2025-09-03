@@ -38,7 +38,10 @@
     <div>
       <label class="block font-medium mb-1">Hasil Validasi</label>
       <textarea id="resultArea" rows="6" class="border p-2 w-full rounded bg-gray-50"
-        placeholder="Hasil validasi akan tampil di sini (satu per baris)"></textarea>
+        placeholder="Hasil validasi akan tampil di sini (dipisah * )"></textarea>
+    </div>
+    <div>
+      <p id="countResult" class="text-sm font-medium text-gray-700"></p>
     </div>
 
     <div class="text-xs text-gray-500">
@@ -95,7 +98,13 @@
       const unik = Array.from(new Set(hasil));
       const sorted = numericSort(unik, sortAsc);
 
-      document.getElementById("resultArea").value = (sorted.length ? sorted.join("\n") : "Tidak ada angka yang cocok.");
+      if (sorted.length) {
+        document.getElementById("resultArea").value = sorted.join("*");
+        document.getElementById("countResult").textContent = "Jumlah angka hasil validasi: " + sorted.length;
+      } else {
+        document.getElementById("resultArea").value = "Tidak ada angka yang cocok.";
+        document.getElementById("countResult").textContent = "";
+      }
     });
 
     // Reset semua textarea
@@ -104,6 +113,7 @@
       document.getElementById("inputArea2").value = "";
       document.getElementById("inputArea3").value = "";
       document.getElementById("resultArea").value = "";
+      document.getElementById("countResult").textContent = "";
     });
 
     // Toggle sort order dan refresh validasi jika ada hasil
@@ -113,10 +123,10 @@
       // jika ada hasil yang sudah tampil, urut ulang hasilnya tanpa butuh klik validasi
       const curr = document.getElementById("resultArea").value.trim();
       if (curr && curr !== "Tidak ada angka yang cocok.") {
-        // ubah hasil yang ada (satu per baris) menjadi array lalu resort
-        const arr = curr.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+        const arr = curr.split("*").map(x => x.trim()).filter(Boolean);
         const sorted = numericSort(Array.from(new Set(arr)), sortAsc);
-        document.getElementById("resultArea").value = sorted.join("\n");
+        document.getElementById("resultArea").value = sorted.join("*");
+        document.getElementById("countResult").textContent = "Jumlah angka hasil validasi: " + sorted.length;
       }
     });
   </script>
